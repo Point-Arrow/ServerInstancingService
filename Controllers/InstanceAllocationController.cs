@@ -13,7 +13,6 @@ namespace ServerInstancingService.Controllers;
 [ApiController]
 [Route("api/allocation_request")]
 [EnableRateLimiting("AllocationLimit")]
-[ApiKeyRequired(ApiKeyType.Client)]
 public class InstanceAllocationController : ControllerBase
 {
     private readonly InstanceAllocatorService _allocatorService;
