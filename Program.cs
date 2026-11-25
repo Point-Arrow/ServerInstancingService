@@ -1,10 +1,12 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 using ServerInstancingService.Model.Services;
 using ServerInstancingService.Model.Services.ServerInstances;
 using ServerInstancingService.Model.Services.ServerInstances.AsDocker;
 using ServerInstancingService.Model.Services.ServerInstances.AsProcess;
+using ServerInstancingService.Model.Services.SessionValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +27,27 @@ builder.Services.AddSingleton<LoggerService>();
 builder.Services.AddSingleton<IPortService, PortService>();
 builder.Services.AddSingleton<AllocatorService>();
 builder.Services.AddSingleton<InstanceAllocatorService>();
+
+// Проверка игровых сессий выполняется на доверенном бэкэнде AirWarsDatabase:
+builder.Services.AddOptions<AuthBackendOptions>()
+    .Bind(builder.Configuration.GetSection(AuthBackendOptions.SectionName))
+    .Validate(options => Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out _),
+        "AuthBackend:BaseUrl must be an absolute URL.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.SessionValidationPath),
+        "AuthBackend:SessionValidationPath must not be empty.")
+    .Validate(options => options.TimeoutSeconds > 0,
+        "AuthBackend:TimeoutSeconds must be positive.")
+    .ValidateOnStart();
+
+builder.Services.AddHttpClient<ISessionValidationService, SessionValidationService>(
+    (serviceProvider, httpClient) =>
+    {
+        AuthBackendOptions authBackendOptions = serviceProvider
+            .GetRequiredService<IOptions<AuthBackendOptions>>().Value;
+
+        httpClient.BaseAddress = new Uri(authBackendOptions.BaseUrl.TrimEnd('/') + "/");
+        httpClient.Timeout = TimeSpan.FromSeconds(authBackendOptions.TimeoutSeconds);
+    });
 
 builder.Services.AddRateLimiter(options =>
 {

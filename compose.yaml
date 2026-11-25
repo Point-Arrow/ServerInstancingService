@@ -9,7 +9,6 @@
       - DELETE=1
       - VERSION=1
       - PING=1
-      
       - VOLUMES=0
       - NETWORKS=0
       - SYSTEM=0

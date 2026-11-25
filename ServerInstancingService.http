@@ -1,6 +1,0 @@
-@ServerInstancingService_HostAddress = http://localhost:5223
-
-GET {{ServerInstancingService_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

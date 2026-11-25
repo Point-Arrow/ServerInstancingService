@@ -1,6 +1,6 @@
-﻿using AirWarsDatabase.Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using ServerInstancingService.Filters;
 using ServerInstancingService.Model;
 using ServerInstancingService.Model.Data;
 using ServerInstancingService.Model.Services;
@@ -13,6 +13,7 @@ namespace ServerInstancingService.Controllers;
 [ApiController]
 [Route("api/allocation_request")]
 [EnableRateLimiting("AllocationLimit")]
+[SessionRequired]
 public class InstanceAllocationController : ControllerBase
 {
     private readonly InstanceAllocatorService _allocatorService;
@@ -31,7 +32,11 @@ public class InstanceAllocationController : ControllerBase
         try
         {
             AllocationData allocationData = await _allocatorService.AllocateServerInstanceAsync();
-            _loggerService.Log(LogType.Info, "Allocation successfully: " + allocationData);
+            int? playerId = HttpContext.Items[SessionRequiredAttribute.PlayerIdItemKey] is int id
+                ? id
+                : null;
+            _loggerService.Log(LogType.Info,
+                $"Allocation successfully for player {playerId?.ToString() ?? "unknown"}: {allocationData}");
             return Ok(allocationData);
         }
         catch (Exception e)
